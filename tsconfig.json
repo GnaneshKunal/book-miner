@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "jsx": "react",
+    "sourceMap": true,
+    "outDir": "./dist/",
+    "rootDirs": [
+      ".", "./crawler"
+    ],
+    "removeComments": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedParameters": true
+  },
+  "files": [
+    "index.ts", "./crawler/index.ts"
+  ]
+}
