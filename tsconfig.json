@@ -6,7 +6,7 @@
     "sourceMap": true,
     "outDir": "./dist/",
     "rootDirs": [
-      ".", "./crawler"
+      ".", "./crawler", "./lib"
     ],
     "removeComments": true,
     "strict": true,
@@ -14,6 +14,6 @@
     "noUnusedParameters": true
   },
   "files": [
-    "index.ts", "./crawler/index.ts", "./crawler/index2.ts"
+    "index.ts", "./crawler/index.ts", "./lib/model.ts"
   ]
 }
