@@ -2,9 +2,11 @@ import axios from 'axios';
 import * as AxiosTypes from 'axios';
 import * as cheerio from 'cheerio';
 import * as Entities from 'html-entities';
-import * as fs from 'fs';
+//import * as fs from 'fs';
+import * as mongoose from 'mongoose';
+import BookReview from '../lib/model';
 
-const AllHtmlEntities = Entities.AllHtmlEntities;
+const AllHtmlEntities: any = Entities.AllHtmlEntities;
 
 interface IBookReview {
     Title: String;
@@ -14,8 +16,20 @@ interface IBookReview {
     Reviewer: String;
 }
 
+let url: string = 'mongodb://monster:monster@localhost:27017/book-miner';
 
-// console.log(AllHtmlEntities.decode('&lt;&gt;&quot;&amp;&copy;&reg;'));
+mongoose.connect(url, {
+    useMongoClient: true
+}, (err: mongoose.Error) => {
+    if (err) {
+        console.log(err.message);
+        console.log(err);
+    } else {
+        console.log('Connected to MongoDb')
+    }
+});
+
+(<any>mongoose).Promise = global.Promise;
 
 function decodeText<Any>(text: String): String {
     let textTemp = text;
@@ -32,9 +46,14 @@ function decodeHTMLChars(text: String): String {
     return AllHtmlEntities.decode(text);
 }
 
+function CheerioHTMLtoString(elem: Cheerio) {
+    return decodeText(elem.html().trim())
+}
+
 // #freeTextContainer16229583079382358220
-function request(/* link: String */) : void | never {
-    axios.get('https://www.goodreads.com/book/show/26233572')
+function request(num: Number) : void | never {
+    let n = 5107;
+    axios.get(`https://www.goodreads.com/book/show/${num}`)
         .then((response: AxiosTypes.AxiosResponse) => {
             const html: any = response.data;
             // const $: CheerioStatic = cheerio.load(html);
@@ -43,11 +62,12 @@ function request(/* link: String */) : void | never {
             const $: CheerioStatic = cheerio.load(html);
             // const review: Cheerio = $('#review_829021593 > div:nth-child(3) > div:nth-child(2)');
             const bookMeta: Cheerio = $('#bookMeta');
-            const counts = bookMeta.find('a').next().next().next()
-            const title = bookMeta.find('span')
+            const counts = bookMeta.find('a').next().next().next();
+            const title = bookMeta.find('span');
+            const author = $('#bookAuthors').find('.authorName');
             const rating: Cheerio = bookMeta.find('span').next().next();
-            const ratingsCount: Cheerio = counts.find('span')
-            const reviewsCount: Cheerio = counts.next().next().find('span')
+            const ratingsCount: Cheerio = counts.find('span');
+            const reviewsCount: Cheerio = counts.next().next().find('span');
             // var counts = bookMeta.find('a').next().next().next();
             // var averageReview = bookMeta.find('span').next().next()
             // var ratingsCount = counts.find('span');
@@ -68,11 +88,41 @@ function request(/* link: String */) : void | never {
                 Reviews Count: ${decodeText(reviewsCount.html().trim())}`
             )
             console.log(
-                `ReviewerName: ${reviewerRatings}`
+                `ReviewerName: ${decodeText(author.html().trim())}`
             )
+
+            let bookReview = new BookReview({
+                title: CheerioHTMLtoString(title),
+                author: CheerioHTMLtoString(author),
+                rating: Number(CheerioHTMLtoString(rating)),
+                ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
+                reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
+                reviewerName: CheerioHTMLtoString(reviewerName),
+                review: CheerioHTMLtoString(review)
+            });
+            bookReview.save((err: mongoose.Error) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err);
+                } else {
+                    console.log(num);
+                }
+            });
+
+            // title: String;
+            // author: String;
+            // rating: Number;
+            // ratingsCount: Number;
+            // reviewsCount: Number;
+        
+            // reviewerName: String;
+            // review: String;
+
+
         })
         .catch(error => {
             console.log(error.response);
+            console.log('cant do ');
         })
 
     // #review_1948610567 > div:nth-child(3) > div:nth-child(2)
@@ -105,5 +155,15 @@ function request(/* link: String */) : void | never {
     //     console.log(review2.html())
     // });
 }
+let i = 0;
+// request();
+while (i < 10000) {
+    i++;
+    setTimeout(() => {
+        request(i);
+    }, 500)
+}
 
-request();
+// setInterval(() => {
+    
+// }, 500);
