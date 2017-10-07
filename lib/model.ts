@@ -6,6 +6,7 @@ interface IBookReview extends mongoose.Document {
     rating: Number;
     ratingsCount: Number;
     reviewsCount: Number;
+    bookID: Number;
 
     reviewerName: String;
     review: String;
@@ -15,6 +16,11 @@ const BookReviewSchema: mongoose.Schema = new mongoose.Schema({
     title: {
         type: String,
         required: true
+    },
+    bookID: {
+        type: Number,
+        required: true,
+        unique: true
     },
     author: {
         type: String,
