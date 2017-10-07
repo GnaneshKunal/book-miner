@@ -51,6 +51,8 @@ function CheerioHTMLtoString(elem: Cheerio) {
 }
 
 // #freeTextContainer16229583079382358220
+
+let time = false;
 function request(num: Number) : void | never {
     let n = 5107;
     axios.get(`https://www.goodreads.com/book/show/${num}`)
@@ -76,7 +78,7 @@ function request(num: Number) : void | never {
             // console.log(decodeText(reviewsCount.html().trim()))
 
             //Author:
-
+            
             const reviewer = $('#bookReviews > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)')
             const reviewerName = reviewer.find('div.reviewHeader').find('span')
             const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
@@ -97,6 +99,7 @@ function request(num: Number) : void | never {
                 rating: Number(CheerioHTMLtoString(rating)),
                 ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
                 reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
+                bookID: num,
                 reviewerName: CheerioHTMLtoString(reviewerName),
                 review: CheerioHTMLtoString(review)
             });
@@ -117,12 +120,14 @@ function request(num: Number) : void | never {
         
             // reviewerName: String;
             // review: String;
-
+            time = false;
 
         })
         .catch(error => {
-            console.log(error.response);
+            // console.log(error.response);
+            if (error) { }
             console.log('cant do ');
+            time = true;
         })
 
     // #review_1948610567 > div:nth-child(3) > div:nth-child(2)
@@ -157,13 +162,49 @@ function request(num: Number) : void | never {
 }
 let i = 0;
 // request();
-while (i < 10000) {
-    i++;
-    setTimeout(() => {
-        request(i);
-    }, 500)
-}
+// request(1);
+// while (i < 10000) {
+//     i++;
+//     setTimeout(() => {
+//         if (time === true) {
+//             setTimeout(() => {}, 1000);
+//         }
+//         request(i);
+//     }, 500)
+// }
 
 // setInterval(() => {
     
 // }, 500);
+var arr: Array<String> = [];
+
+function request2(cb: () => void) : void | never {
+    axios.get(`https://www.goodreads.com/book/show/18114322-the-grapes-of-wrath`)
+        .then((response: AxiosTypes.AxiosResponse) => {
+            const html: any = response.data;
+            // const $: CheerioStatic = cheerio.load(html);
+            // const country: Cheerio = $('#titleDetails.article div.txt-block').first().find('a');
+            // const html: any = data.toString();
+            const $: CheerioStatic = cheerio.load(html);
+            var links = $("a");
+            links.each(function() {
+                let that: any = this;
+                let link2 = $(that).attr('href');
+                let link;
+                if (link2 !== undefined) {
+                    link = link2.match(/www.goodreads.com\/book\/show\/(\d+)\..*/g);
+                }
+                if (link !== null  && link !== undefined && link.length === 1) {
+                    arr.push(link[0]);
+                }
+            });
+            cb();
+        })
+        .catch(error => {
+            throw error;
+        })
+}
+
+request2(() => {
+    console.log();
+});
