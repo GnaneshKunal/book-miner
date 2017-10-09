@@ -2,8 +2,10 @@ import axios from 'axios';
 import * as AxiosTypes from 'axios';
 import * as cheerio from 'cheerio';
 import * as Entities from 'html-entities';
+import * as _ from 'lodash';
 //import * as fs from 'fs';
 import * as mongoose from 'mongoose';
+import * as redis from 'redis';
 import BookReview from '../lib/model';
 
 const AllHtmlEntities: any = Entities.AllHtmlEntities;
@@ -30,6 +32,8 @@ mongoose.connect(url, {
 });
 
 (<any>mongoose).Promise = global.Promise;
+
+const redisClient = redis.createClient();
 
 function decodeText<Any>(text: String): String {
     let textTemp = text;
@@ -160,34 +164,15 @@ function request(num: Number) : void | never {
     //     console.log(review2.html())
     // });
 }
-let i = 0;
-// request();
-// request(1);
-// while (i < 10000) {
-//     i++;
-//     setTimeout(() => {
-//         if (time === true) {
-//             setTimeout(() => {}, 1000);
-//         }
-//         request(i);
-//     }, 500)
-// }
 
-// setInterval(() => {
-    
-// }, 500);
-var arr: Array<String> = [];
-
-function request2(cb: () => void) : void | never {
+function request2(cb: Function) : void | never {
+    var arr: Array<String> = [];
     axios.get(`https://www.goodreads.com/book/show/18114322-the-grapes-of-wrath`)
         .then((response: AxiosTypes.AxiosResponse) => {
             const html: any = response.data;
-            // const $: CheerioStatic = cheerio.load(html);
-            // const country: Cheerio = $('#titleDetails.article div.txt-block').first().find('a');
-            // const html: any = data.toString();
             const $: CheerioStatic = cheerio.load(html);
             var links = $("a");
-            links.each(function() {
+            links.each(function(this: Cheerio) {
                 let that: any = this;
                 let link2 = $(that).attr('href');
                 let link;
@@ -198,13 +183,133 @@ function request2(cb: () => void) : void | never {
                     arr.push(link[0]);
                 }
             });
-            cb();
+            cb(arr);
         })
         .catch(error => {
             throw error;
         })
 }
 
-request2(() => {
-    console.log();
+request2((arr: Array<string>) => {
+    let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
+    let arr5 = _.flatMap(arr4)
+    let arr6 = _.map(arr5, (x) => {
+        let y = x.split('.')
+        let y1 = y[0]
+        let y2 = y[1].toLocaleLowerCase()
+        let z = {y1 , y2}
+        return z;
+    });
+
+    type TupIdName = {y1: String, y2: String }
+
+    let arr7: any = _.orderBy(arr6, (x => x.y2));
+    let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i)
+    console.log(finalArray.map((x: TupIdName) => x.y1 + "." + x.y2))
 });
+
+function reduceArray(arr: Array<String>): Array<String> {
+    let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
+    let arr5 = _.flatMap(arr4)
+    let arr6 = _.map(arr5, (x) => {
+        let y = x.split('.')
+        let y1 = y[0]
+        let y2 = y[1].toLocaleLowerCase()
+        let z = {y1 , y2}
+        return z;
+    });
+
+    type TupIdName = {y1: String, y2: String }
+
+    let arr7: any = _.orderBy(arr6, (x => x.y2));
+    let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i)
+    return finalArray.map((x: TupIdName) => x.y1 + "." + x.y2)
+}
+
+function getLink(cb: Function): void | never {
+    redisClient.spop("links", (err: Error, l: String) => {
+        if (err)
+            throw err;
+        else {
+            cb(l);
+        }
+    })
+}
+
+function doTask(cb: Function): void | never {
+
+    // Need changes here
+
+    let first = true;
+    let linkURI: String;
+    
+    redisClient.spop("links", (err, l) => {
+        if (err)
+            throw err;
+        linkURI = l;
+    });
+
+    // Need logic here
+
+    var arr: Array<String> = [];
+    axios.get(`https://www.goodreads.com/book/show/18114322-the-grapes-of-wrath`)
+        .then((response: AxiosTypes.AxiosResponse) => {
+            const html: any = response.data;
+            const $: CheerioStatic = cheerio.load(html);
+            const bookMeta: Cheerio = $('#bookMeta');
+            const counts = bookMeta.find('a').next().next().next();
+            const title = bookMeta.find('span');
+            const author = $('#bookAuthors').find('.authorName');
+            const rating: Cheerio = bookMeta.find('span').next().next();
+            const ratingsCount: Cheerio = counts.find('span');
+            const reviewsCount: Cheerio = counts.next().next().find('span');
+            let links = $("a");
+            links.each(function(this: Cheerio) {
+                let that: any = this;
+                let link2 = $(that).attr('href');
+                let link;
+                if (link2 !== undefined) {
+                    link = link2.match(/www.goodreads.com\/book\/show\/(\d+)\..*/g);
+                }
+                if (link !== null  && link !== undefined && link.length === 1) {
+                    arr.push(link[0]);
+                }
+            });
+            const reviewer = $('#bookReviews > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)')
+            const reviewerName = reviewer.find('div.reviewHeader').find('span')
+            const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
+            const review: Cheerio = reviewer.find('div.reviewText').find('span').next()
+            console.log(
+                `Title: ${decodeText(title.html().trim())}\n
+                Rating: ${decodeText(rating.html().trim())}\n
+                Ratings Count: ${decodeText(ratingsCount.html().trim())}\n
+                Reviews Count: ${decodeText(reviewsCount.html().trim())}`
+            )
+            console.log(
+                `ReviewerName: ${decodeText(author.html().trim())}`
+            )
+
+            let bookReview = new BookReview({
+                title: CheerioHTMLtoString(title),
+                author: CheerioHTMLtoString(author),
+                rating: Number(CheerioHTMLtoString(rating)),
+                ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
+                reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
+                bookID: num,
+                reviewerName: CheerioHTMLtoString(reviewerName),
+                review: CheerioHTMLtoString(review)
+            });
+            bookReview.save((err: mongoose.Error) => {
+                if (err) {
+                    console.log(err.message);
+                    console.log(err);
+                } else {
+                    console.log(num);
+                }
+            });
+            cb(arr);
+        })
+        .catch(error => {
+            throw error;
+        })
+}
