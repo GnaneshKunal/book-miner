@@ -6,6 +6,8 @@ import * as _ from 'lodash';
 //import * as fs from 'fs';
 import * as mongoose from 'mongoose';
 import * as redis from 'redis';
+import * as bluebird from 'bluebird';
+import * as es6Promise from 'es6-promise';
 import BookReview from '../lib/model';
 
 const AllHtmlEntities: any = Entities.AllHtmlEntities;
@@ -31,7 +33,11 @@ mongoose.connect(url, {
     }
 });
 
+global.Promise = es6Promise.Promise;
 (<any>mongoose).Promise = global.Promise;
+
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 
 const redisClient = redis.createClient();
 
@@ -190,7 +196,30 @@ function request2(cb: Function) : void | never {
         })
 }
 
-request2((arr: Array<string>) => {
+// request2((arr: Array<string>) => {
+//     let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
+//     let arr5 = _.flatMap(arr4)
+//     let arr6 = _.map(arr5, (x) => {
+//         let y = x.split('.')
+//         let y1 = y[0]
+//         let y2 = y[1].toLocaleLowerCase()
+//         let z = {y1 , y2}
+//         return z;
+//     });
+
+//     // let links = await redisClient.spop("links");
+//     // console.log(links);
+
+//     type TupIdName = {y1: String, y2: String }
+
+//     let arr7: any = _.orderBy(arr6, (x => x.y2));
+//     let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i)
+//     console.log(finalArray.map((x: TupIdName) => x.y1 + "." + x.y2))
+// });
+
+type reduceCB = (arr2: Array<String>) => void;
+
+function reduceArray(arr: Array<String>, cb: reduceCB): void  {
     let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
     let arr5 = _.flatMap(arr4)
     let arr6 = _.map(arr5, (x) => {
@@ -204,55 +233,47 @@ request2((arr: Array<string>) => {
     type TupIdName = {y1: String, y2: String }
 
     let arr7: any = _.orderBy(arr6, (x => x.y2));
-    let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i)
-    console.log(finalArray.map((x: TupIdName) => x.y1 + "." + x.y2))
-});
-
-function reduceArray(arr: Array<String>): Array<String> {
-    let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
-    let arr5 = _.flatMap(arr4)
-    let arr6 = _.map(arr5, (x) => {
-        let y = x.split('.')
-        let y1 = y[0]
-        let y2 = y[1].toLocaleLowerCase()
-        let z = {y1 , y2}
-        return z;
-    });
-
-    type TupIdName = {y1: String, y2: String }
-
-    let arr7: any = _.orderBy(arr6, (x => x.y2));
-    let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i)
-    return finalArray.map((x: TupIdName) => x.y1 + "." + x.y2)
+    let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i);
+    let arr8 =  finalArray.map((x: TupIdName) => x.y1 + "." + x.y2);
+    cb(arr8);
 }
 
-function getLink(cb: Function): void | never {
-    redisClient.spop("links", (err: Error, l: String) => {
-        if (err)
-            throw err;
-        else {
-            cb(l);
-        }
-    })
+
+async function getLink() {
+    let link;
+
+    try {
+        link = await (<any>redisClient).spopAsync('links')
+    } catch (err) {
+        throw err;
+    }
+    console.log("Link + " + link);
+
+    return link;
 }
 
-function doTask(cb: Function): void | never {
+async function checkForExistence(num: Number) {
+    return await (<any>redisClient).sismemberAsync("donelinks", num.toString());
+}
 
-    // Need changes here
-
-    let first = true;
-    let linkURI: String;
+async function doTask(cb: Function) {
     
-    redisClient.spop("links", (err, l) => {
-        if (err)
-            throw err;
-        linkURI = l;
-    });
+    let linkURI = await getLink();
 
     // Need logic here
-
-    var arr: Array<String> = [];
-    axios.get(`https://www.goodreads.com/book/show/18114322-the-grapes-of-wrath`)
+    if (linkURI === null) {
+        console.log("Link Null Exiting: " + linkURI);
+        return;
+    }
+    let num = linkURI.match(/(\d+)/)[0];
+    //check for existence
+    let existence = await checkForExistence(num);
+    if (existence) {
+        console.log('Grabed link already');
+        doTask(cb);
+    }
+    let arr: Array<String> = [];
+    axios.get(`https://www.goodreads.com/book/show/${linkURI}`)
         .then((response: AxiosTypes.AxiosResponse) => {
             const html: any = response.data;
             const $: CheerioStatic = cheerio.load(html);
@@ -279,16 +300,6 @@ function doTask(cb: Function): void | never {
             const reviewerName = reviewer.find('div.reviewHeader').find('span')
             const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
             const review: Cheerio = reviewer.find('div.reviewText').find('span').next()
-            console.log(
-                `Title: ${decodeText(title.html().trim())}\n
-                Rating: ${decodeText(rating.html().trim())}\n
-                Ratings Count: ${decodeText(ratingsCount.html().trim())}\n
-                Reviews Count: ${decodeText(reviewsCount.html().trim())}`
-            )
-            console.log(
-                `ReviewerName: ${decodeText(author.html().trim())}`
-            )
-
             let bookReview = new BookReview({
                 title: CheerioHTMLtoString(title),
                 author: CheerioHTMLtoString(author),
@@ -301,15 +312,24 @@ function doTask(cb: Function): void | never {
             });
             bookReview.save((err: mongoose.Error) => {
                 if (err) {
-                    console.log(err.message);
-                    console.log(err);
+                    console.log("MongoMessage " + err.message);
+                    console.log("MongoError " + err);
                 } else {
-                    console.log(num);
+                    console.log("Done ID: " + num);
+                    redisClient.sadd('donelinks', num);
                 }
             });
             cb(arr);
         })
         .catch(error => {
             throw error;
-        })
+        });
+        // doTask(cb);
 }
+
+doTask((arr: Array<String>) => reduceArray(arr, (arr) => {
+    let finalArr = arr;
+    finalArr.unshift('links')
+    console.log(finalArr);
+    redisClient.sadd(finalArr);
+}));
