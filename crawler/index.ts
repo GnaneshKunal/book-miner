@@ -220,17 +220,17 @@ function request2(cb: Function) : void | never {
 type reduceCB = (arr2: Array<String>) => void;
 
 function reduceArray(arr: Array<String>, cb: reduceCB): void  {
-    let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''))
-    let arr5 = _.flatMap(arr4)
+    let arr4 = arr.map(x => x.split(/www.goodreads.com\/book\/show\//).filter(x => x !== ''));
+    let arr5 = _.flatMap(arr4);
     let arr6 = _.map(arr5, (x) => {
-        let y = x.split('.')
-        let y1 = y[0]
-        let y2 = y[1].toLocaleLowerCase()
-        let z = {y1 , y2}
+        let y = x.split('.');
+        let y1 = y[0];
+        let y2 = y[1].toLocaleLowerCase();
+        let z = {y1 , y2};
         return z;
     });
 
-    type TupIdName = {y1: String, y2: String }
+    type TupIdName = { y1: String, y2: String }
 
     let arr7: any = _.orderBy(arr6, (x => x.y2));
     let finalArray = arr7.filter((e: TupIdName, i: TupIdName) => arr7.findIndex((e2: TupIdName) => e.y2 === e2.y2) === i);
@@ -273,63 +273,121 @@ async function doTask(cb: Function) {
         doTask(cb);
     }
     let arr: Array<String> = [];
-    axios.get(`https://www.goodreads.com/book/show/${linkURI}`)
-        .then((response: AxiosTypes.AxiosResponse) => {
-            const html: any = response.data;
-            const $: CheerioStatic = cheerio.load(html);
-            const bookMeta: Cheerio = $('#bookMeta');
-            const counts = bookMeta.find('a').next().next().next();
-            const title = bookMeta.find('span');
-            const author = $('#bookAuthors').find('.authorName');
-            const rating: Cheerio = bookMeta.find('span').next().next();
-            const ratingsCount: Cheerio = counts.find('span');
-            const reviewsCount: Cheerio = counts.next().next().find('span');
-            let links = $("a");
-            links.each(function(this: Cheerio) {
-                let that: any = this;
-                let link2 = $(that).attr('href');
-                let link;
-                if (link2 !== undefined) {
-                    link = link2.match(/www.goodreads.com\/book\/show\/(\d+)\..*/g);
-                }
-                if (link !== null  && link !== undefined && link.length === 1) {
-                    arr.push(link[0]);
-                }
-            });
-            const reviewer = $('#bookReviews > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)')
-            const reviewerName = reviewer.find('div.reviewHeader').find('span')
-            const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
-            const review: Cheerio = reviewer.find('div.reviewText').find('span').next()
-            let bookReview = new BookReview({
-                title: CheerioHTMLtoString(title),
-                author: CheerioHTMLtoString(author),
-                rating: Number(CheerioHTMLtoString(rating)),
-                ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
-                reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
-                bookID: num,
-                reviewerName: CheerioHTMLtoString(reviewerName),
-                review: CheerioHTMLtoString(review)
-            });
-            bookReview.save((err: mongoose.Error) => {
-                if (err) {
-                    console.log("MongoMessage " + err.message);
-                    console.log("MongoError " + err);
-                } else {
-                    console.log("Done ID: " + num);
-                    redisClient.sadd('donelinks', num);
-                }
-            });
-            cb(arr);
-        })
-        .catch(error => {
-            throw error;
-        });
-        // doTask(cb);
+    // axios.get(`https://www.goodreads.com/book/show/${linkURI}`)
+    //     .then((response: AxiosTypes.AxiosResponse) => {
+    //         const html: any = response.data;
+    //         const $: CheerioStatic = cheerio.load(html);
+    //         const bookMeta: Cheerio = $('#bookMeta');
+    //         const counts = bookMeta.find('a').next().next().next();
+    //         const title = bookMeta.find('span');
+    //         const author = $('#bookAuthors').find('.authorName');
+    //         const rating: Cheerio = bookMeta.find('span').next().next();
+    //         const ratingsCount: Cheerio = counts.find('span');
+    //         const reviewsCount: Cheerio = counts.next().next().find('span');
+    //         let links = $("a");
+    //         links.each(function(this: Cheerio) {
+    //             let that: any = this;
+    //             let link2 = $(that).attr('href');
+    //             let link;
+    //             if (link2 !== undefined) {
+    //                 link = link2.match(/www.goodreads.com\/book\/show\/(\d+)\..*/g);
+    //             }
+    //             if (link !== null  && link !== undefined && link.length === 1) {
+    //                 arr.push(link[0]);
+    //             }
+    //         });
+    //         const reviewer = $('#bookReviews > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)')
+    //         const reviewerName = reviewer.find('div.reviewHeader').find('span')
+    //         const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
+    //         const review: Cheerio = reviewer.find('div.reviewText').find('span').next()
+    //         let bookReview = new BookReview({
+    //             title: CheerioHTMLtoString(title),
+    //             author: CheerioHTMLtoString(author),
+    //             rating: Number(CheerioHTMLtoString(rating)),
+    //             ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
+    //             reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
+    //             bookID: num,
+    //             reviewerName: CheerioHTMLtoString(reviewerName),
+    //             review: CheerioHTMLtoString(review)
+    //         });
+    //         bookReview.save((err: mongoose.Error) => {
+    //             if (err) {
+    //                 console.log("MongoMessage " + err.message);
+    //                 console.log("MongoError " + err);
+    //             } else {
+    //                 console.log("Done ID: " + num);
+    //                 redisClient.sadd('donelinks', num);
+    //             }
+    //         });
+    //         cb(arr);
+    //     })
+    //     .catch(error => {
+    //         throw error;
+    //     });
+    
+    // from here
+    
+    let response;
+
+    try {
+        response = await axios.get(`https://www.goodreads.com/book/show/${linkURI}`);
+    }
+    catch(err) {
+        throw err;
+    }
+
+    const html: any = response.data;
+    const $: CheerioStatic = cheerio.load(html);
+    const bookMeta: Cheerio = $('#bookMeta');
+    const counts = bookMeta.find('a').next().next().next();
+    const title = bookMeta.find('span');
+    const author = $('#bookAuthors').find('.authorName');
+    const rating: Cheerio = bookMeta.find('span').next().next();
+    const ratingsCount: Cheerio = counts.find('span');
+    const reviewsCount: Cheerio = counts.next().next().find('span');
+    let links = $("a");
+    links.each(function(this: Cheerio) {
+        let that: any = this;
+        let link2 = $(that).attr('href');
+        let link;
+        if (link2 !== undefined) {
+            link = link2.match(/www.goodreads.com\/book\/show\/(\d+)\..*/g);
+        }
+        if (link !== null  && link !== undefined && link.length === 1) {
+            arr.push(link[0]);
+        }
+    });
+    const reviewer = $('#bookReviews > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)')
+    const reviewerName = reviewer.find('div.reviewHeader').find('span')
+    const reviewerRatings = reviewer.find('div.reviewHeader').find('span').next().length //change this
+    const review: Cheerio = reviewer.find('div.reviewText').find('span').next()
+    let bookReview = new BookReview({
+        title: CheerioHTMLtoString(title),
+        author: CheerioHTMLtoString(author),
+        rating: Number(CheerioHTMLtoString(rating)),
+        ratingsCount: Number(CheerioHTMLtoString(ratingsCount).replace(/,/g, '')),
+        reviewsCount: Number(CheerioHTMLtoString(reviewsCount).replace(/,/g, '')),
+        bookID: num,
+        reviewerName: CheerioHTMLtoString(reviewerName),
+        review: CheerioHTMLtoString(review)
+    });
+    await bookReview.save((err: mongoose.Error) => {
+        if (err) {
+            console.log("MongoMessage " + err.message);
+            console.log("MongoError " + err);
+        } else {
+            console.log("Done ID: " + num);
+            redisClient.sadd('donelinks', num);
+        }
+    });
+    await cb(arr);
+
+
+   await  doTask(cb);
 }
 
 doTask((arr: Array<String>) => reduceArray(arr, (arr) => {
     let finalArr = arr;
-    finalArr.unshift('links')
-    console.log(finalArr);
-    redisClient.sadd(finalArr);
+    finalArr.unshift('links');
+    redisClient.sadd((<any>finalArr));
 }));
