@@ -36,6 +36,7 @@
     "@types/redux": "^3.6.0",
     "@types/redux-thunk": "^2.1.0",
     "@types/superagent": "^3.5.3",
+    "@types/yargs": "^8.0.2",
     "axios": "^0.16.2",
     "bluebird": "^3.5.1",
     "cheerio": "^1.0.0-rc.2",
@@ -43,6 +44,7 @@
     "es6-promise": "^4.1.1",
     "express": "^4.15.3",
     "html-entities": "^1.2.1",
+    "js-crawler": "^0.3.19",
     "lodash": "^4.17.4",
     "mongoose": "^4.12.0",
     "morgan": "^1.8.2",
@@ -53,7 +55,9 @@
     "redis": "^2.8.0",
     "redux": "^3.7.2",
     "redux-thunk": "^2.2.0",
-    "superagent": "^3.5.2"
+    "superagent": "^3.5.2",
+    "webpage": "^0.3.0",
+    "yargs": "^9.0.1"
   },
   "devDependencies": {
     "awesome-typescript-loader": "^3.2.2",
