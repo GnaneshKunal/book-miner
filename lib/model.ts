@@ -1,6 +1,7 @@
 import * as mongoose from 'mongoose';
+const Mongoosastic  = require('mongoosastic');
 
-interface IBookReview extends mongoose.Document {
+export interface IBookReview extends mongoose.Document {
     title: String;
     author: String;
     rating: Number;
@@ -44,6 +45,12 @@ const BookReviewSchema: mongoose.Schema = new mongoose.Schema({
     review: {
         type: String
     }
+});
+
+BookReviewSchema.plugin(Mongoosastic, {
+    hosts: [
+        'localhost:9200'
+    ]
 });
 
 const BookReview = mongoose.model<IBookReview>('BookReview', BookReviewSchema);
