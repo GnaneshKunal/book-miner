@@ -1,9 +1,10 @@
 import * as React from 'react';
 import Home from './Home';
+import BookSearchFrom from './BookSearchForm';
 
 const Main = (): JSX.Element => (
     <div>
-        <Home message='React-TypeScript Boilerplate project Made with \u2665' author='Gnanesh' />
+        <BookSearchFrom />
     </div>
 );
 
