@@ -44,6 +44,9 @@ const BookReviewSchema: mongoose.Schema = new mongoose.Schema({
     },
     review: {
         type: String
+    },
+    reviewerRatings: {
+        type: String
     }
 });
 
