@@ -48,7 +48,8 @@ class App {
 
             BookReview.find({ title: new RegExp(query, 'i') })
                 .limit(10)
-                .exec((err: Error, books: IBookReview) => {
+                .select('title author rating bookID -_id')
+                .exec((err: Error, books: Array<IBookReview>) => {
                     if (err)
                         return res.status(500).send({
                             data: 'Sorry, Error'
