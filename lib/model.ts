@@ -8,9 +8,9 @@ export interface IBookReview extends mongoose.Document {
     ratingsCount: Number;
     reviewsCount: Number;
     bookID: Number;
-
     reviewerName: String;
     review: String;
+    reviewerRatings: string
 }
 
 const BookReviewSchema: mongoose.Schema = new mongoose.Schema({
