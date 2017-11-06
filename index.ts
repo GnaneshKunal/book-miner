@@ -60,25 +60,29 @@ class App {
                 });
         });
 
-        BookReviewRouter.get('/book/book_name', (req: express.Request, res: express.Response) => {
-            const bookName = req.params.book_name;
+        BookReviewRouter.get('/book/:id', (req: express.Request, res: express.Response) => {
+            const bookID = Number(req.params.id);
 
-            if (!bookName) {
+            if (!bookID)
                 return res.status(400).send({
-                    data: 'Please specify a title'
+                    data: 'Please specify an id'
                 });
-            }
 
-            BookReview.findOne({ title: new RegExp(bookName, 'i') })
-                .exec((err: Error, book: IBookReview) => {
-                    if (err)
-                        return res.status(500).send({
-                            data: 'Something went wrong'
-                        });
-                    return res.status(200).send({
-                        data: book
+            if (bookID < 0 || bookID > 350000)
+                return res.status(400).send({
+                    data: 'bookID limit exceeded'
+                });
+
+
+            BookReview.findOne({ bookID: Number(bookID) }, (err: Error, book: IBookReview) => {
+                if (err)
+                    return res.status(500).send({
+                        data: 'Something went wrong'
                     });
-                }) 
+                return res.status(200).send({
+                    data: book
+                });
+            });
         });
 
         return BookReviewRouter;
@@ -87,8 +91,8 @@ class App {
     private mountRoutes(): void {
         const router: express.Router = express.Router();
         this.express.use(express.static('.'));
-        router.get('/', (_, res: express.Response) => {
-            return res.sendFile(path.join( __dirname, 'index.html'));
+        router.get(['/', '/book/:id'], (_, res: express.Response) => {
+            return res.sendFile(path.join( __dirname + '/../' , 'index.html'));
         });
         this.express.use('/', router);
         this.express.use('/api', this.BookReviewRouter());
