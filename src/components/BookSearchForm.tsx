@@ -61,7 +61,7 @@ class BookSearchFrom extends React.Component<IBookSearchProps, IBookSearchState>
                 <div className="list-group">
                     {data.map((x: IBookSchema) => {
                         return (
-                            <Link to="#" className="list-group-item list-group-item-action flex-column align-items-start">
+                            <Link to={`/book/${x.bookID}`} className="list-group-item list-group-item-action flex-column align-items-start">
                                 <div className="d-flex w-100 justify-content-between">
                                 <h5 className="mb-1">{x.title}</h5>
                                 <small>{x.rating}</small>
@@ -76,7 +76,6 @@ class BookSearchFrom extends React.Component<IBookSearchProps, IBookSearchState>
         } else {
             return (
                 <div>
-                    Nothing
                 </div>
             )
         }
@@ -113,7 +112,7 @@ class BookSearchFrom extends React.Component<IBookSearchProps, IBookSearchState>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
     public render(): JSX.Element {
